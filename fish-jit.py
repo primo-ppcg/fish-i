@@ -108,7 +108,7 @@ def mainloop(program, col_max, row_max):
       elif code == 105:
         char = os.read(0, 1)
         if char:
-          stack.append(ord(char[0]))
+          stack.append(char[0])
         else:
           stack.append(-1)
       elif code == 110:
