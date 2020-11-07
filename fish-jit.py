@@ -69,7 +69,7 @@ def mainloop(program, col_max, row_max):
         stack = stacks.pop() + stack
         register = registers.pop()
       elif code == 108: stack.append(len(stack))
-      elif code == 114: stack = stack[::-1]
+      elif code == 114: stack.reverse()
       elif code == 123: stack = stack[1:] + stack[:1]
       elif code == 125: stack = stack[-1:] + stack[:-1]
       elif code == 126: stack = stack[:-1]
