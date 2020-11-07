@@ -104,7 +104,7 @@ def mainloop(program, col_max, row_max):
         skip = not bool(stack.pop())
       elif code == 103:
         y, x = stack.pop(), stack.pop()
-        stack.append(stack.get((x, y), 0))
+        stack.append(program.get((x, y), 0))
       elif code == 105:
         char = os.read(0, 1)
         if char:
