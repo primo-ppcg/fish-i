@@ -1,7 +1,6 @@
-import os
+import sys
 import random
-
-#from rpython.rlib.jit import JitDriver
+from getch import getch
 
 NOUNS = {
   48: 0, 49: 1, 50:  2, 51:  3, 52:  4,  53:  5,  54:  6,  55:  7,
@@ -106,17 +105,17 @@ def mainloop(program, col_max, row_max):
         y, x = stack.pop(), stack.pop()
         stack.append(program.get((x, y), 0))
       elif code == 105:
-        char = os.read(0, 1)
+        char = getch()
         if char:
           stack.append(char[0])
         else:
           stack.append(-1)
       elif code == 110:
         n = stack.pop()
-        os.write(1, str(n).encode())
+        print(n, end = '')
       elif code == 111:
         n = stack.pop()
-        os.write(1, chr(n).encode())
+        print(chr(n), end = '')
       elif code == 112:
         y, x, v = stack.pop(), stack.pop(), stack.pop()
         program[(x, y)] = v
@@ -146,24 +145,16 @@ def mainloop(program, col_max, row_max):
     pc = (x, y)
 
 
-def run(fp):
-  source = b''
-  while True:
-    read = os.read(fp, 4096)
-    if len(read) == 0:
-      break
-    source += read
-  os.close(fp)
+def run(source):
   lines = source.splitlines()
-  program = dict(
-    ((x, y), c)
-      for y, line in enumerate(lines)
-      for x, c in enumerate(line))
+  program = {}
   col_max = {}
   row_max = {}
-  for x,y in program.keys():
-    col_max[x] = max(col_max.get(x, 0), y)
-    row_max[y] = max(row_max.get(y, 0), x)
+  for y, line in enumerate(lines):
+    for x, c in enumerate(line):
+      program[(x, y)] = ord(c)
+      col_max[x] = max(col_max.get(x, 0), y)
+      row_max[y] = max(row_max.get(y, 0), x)
   mainloop(program, col_max, row_max)
 
 
@@ -171,25 +162,18 @@ def main(argv):
   filename = ''
   try:
     filename = argv[1]
-    fp = os.open(filename, os.O_RDONLY, 0o777)
+    with open(filename) as file:
+      source = file.read()
   except IndexError:
-    os.write(2, ('Usage: %s program.fsh'%argv[0]).encode())
-    return 1
+    sys.exit('Usage: %s program.fsh'%argv[0])
   except OSError:
-    os.write(2, ('File not found: %s'%filename).encode())
-    return 1
+    sys.exit('File not found: %s'%filename)
 
   try:
-    run(fp)
+    run(source)
   except:
-    os.write(2, b'something smells fishy...')
-  return 0
-
-
-def target(*args):
-  return main
+    sys.exit('something smells fishy...')
 
 
 if __name__ == '__main__':
-  import sys
   main(sys.argv)
