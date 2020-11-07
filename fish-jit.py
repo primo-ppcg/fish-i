@@ -119,7 +119,7 @@ def mainloop(program, col_max, row_max):
         os.write(1, chr(n).encode())
       elif code == 112:
         y, x, v = stack.pop(), stack.pop(), stack.pop()
-        stack[(x, y)] = v
+        program[(x, y)] = v
         col_max[x] = max(col_max.get(x, 0), y)
         row_max[y] = max(row_max.get(y, 0), x)
 
