@@ -6,7 +6,7 @@ The interpreter differs from the reference implementation on the following point
 
  - Division
 
-   If both operands are integer and the result is exact, the result will be integer, float otherwise. This allows for arbitrary precision integer arithmetic without removing floating point division.
+   If both operands are integer and the result is exact, the result will be integer, [Fraction](https://docs.python.org/3/library/fractions.html) otherwise. Fractions will be displayed as floats. This allows for arbitrary precision arithmetic without removing floating point division.
 
  - Stack Operations
 
