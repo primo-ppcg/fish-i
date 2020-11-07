@@ -136,16 +136,12 @@ def mainloop(program, col_max, row_max):
         x = row_max.get(pc[1], 0)
       elif dx > 0:
         x = 0
-      else:
-        raise RuntimeError("Unreachable code", x, y)
     y = pc[1] + dy
     if y < 0 or y > col_max.get(pc[0], 0):
       if dy < 0:
         y = col_max.get(pc[0], 0)
       elif dy > 0:
         y = 0
-      else:
-        raise RuntimeError("Unreachable code", x, y)
 
     pc = (x, y)
 
