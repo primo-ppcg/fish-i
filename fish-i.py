@@ -1,4 +1,5 @@
 import sys
+from fractions import Fraction
 import random
 from getch import getch
 
@@ -46,8 +47,9 @@ def mainloop(program, col_max, row_max):
       elif code ==  42: c = b * a
       elif code ==  43: c = b + a
       elif code ==  44:
-        c, r = divmod(b, a)
-        if r: c += r / a
+        c = Fraction(b, a)
+        if c.denominator == 1:
+          c = c.numerator
       elif code ==  45: c = b - a
       elif code ==  40: c = int(b < a)
       elif code ==  41: c = int(b > a)
@@ -112,10 +114,13 @@ def mainloop(program, col_max, row_max):
           stack.append(-1)
       elif code == 110:
         n = stack.pop()
-        print(n, end = '')
+        if isinstance(n, Fraction) and n.denominator > 1:
+          print(float(n), end = '')
+        else:
+          print(n, end = '')
       elif code == 111:
         n = stack.pop()
-        print(chr(n), end = '')
+        print(chr(int(n)), end = '')
       elif code == 112:
         y, x, v = stack.pop(), stack.pop(), stack.pop()
         program[(x, y)] = v
