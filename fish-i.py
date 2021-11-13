@@ -1,47 +1,48 @@
 import sys
+from collections import deque
 from fractions import Fraction
 import random
+
 from getch import getch
 
-NOUNS = {
-  48: 0, 49: 1, 50:  2, 51:  3, 52:  4,  53:  5,  54:  6,  55:  7,
-  56: 8, 57: 9, 97: 10, 98: 11, 99: 12, 100: 13, 101: 14, 102: 15
+T_NOUN, T_DYADIC, T_STACK, T_MIRROR, T_CONTROL, T_QUOTE, T_OTHER = range(7)
+SYMBOLS = {
+  T_NOUN:    b'0123456789abcdef',
+  T_DYADIC:  b'%*+,-()=',
+  T_STACK:   b'$:@[]lr{}~',
+  T_MIRROR:  b'#/<>\\^_vx|',
+  T_CONTROL: b'\0 !&.;?ginop',
+  T_QUOTE:   b'"\''
 }
+TYPES = dict([(c, t) for t, chars in SYMBOLS.items() for c in chars])
+NOUNS = dict([(c, (c-48)%39) for c in SYMBOLS[T_NOUN]])
 
-DYADICS = { *b'%*+,-()=' }
-STACKS  = { *b'$:@[]lr{}~' }
-MIRRORS = { *b'#/<>\\^_vx|' }
-CONTROL = { *b' !&.;?ginop', 0 }
-QUOTES  = { 34, 39 }
-
-def mainloop(program, col_max, row_max):
+def run(program, col_max, row_max):
   pc = (0, 0)
   dx, dy = 1, 0
-  stack = []
+  stack = deque()
   stacks = []
   register = None
   registers = []
   skip = False
-  slurp = False
   slurp_char = None
 
   while True:
-    code = program.get(pc, 0)
+    code, type = program.get(pc, (0, T_CONTROL))
 
     if skip:
       skip = False
 
-    elif slurp:
+    elif slurp_char is not None:
       if code != slurp_char:
         stack.append(code)
       else:
-        slurp = False
         slurp_char = None
 
-    elif code in NOUNS:
+    elif type == T_NOUN:
       stack.append(NOUNS[code])
 
-    elif code in DYADICS:
+    elif type == T_DYADIC:
       a, b = stack.pop(), stack.pop()
       if   code ==  37: c = b % a
       elif code ==  42: c = b * a
@@ -56,26 +57,38 @@ def mainloop(program, col_max, row_max):
       elif code ==  61: c = int(b == a)
       stack.append(c)
 
-    elif code in STACKS:
-      if   code ==  36: stack[-2:] = stack[:-3:-1]
-      elif code ==  58: stack.extend(stack[-1:])
-      elif code ==  64: stack[-3:] = stack[-1:] + stack[-3:-1]
+    elif type == T_STACK:
+      if code ==  36:
+        b, a = stack.pop(), stack.pop()
+        stack.extend([b, a])
+      elif code ==  58:
+        stack.append(stack[-1])
+      elif code ==  64:
+        c, b, a = stack.pop(), stack.pop(), stack.pop()
+        stack.extend([c, a, b])
       elif code ==  91:
         n = stack.pop()
-        stacks.append(stack[:-n])
-        stack = stack[-n:]
+        tmp = deque()
+        for _ in range(n):
+          tmp.appendleft(stack.pop())
+        stacks.append(stack)
+        stack = tmp
         registers.append(register)
         register = None
       elif code ==  93:
-        stack = stacks.pop() + stack
-        register = registers.pop()
+        if len(stacks) >= 1:
+          stack = stacks.pop() + stack
+          register = registers.pop()
+        else:
+          stack = deque()
+          register = None
       elif code == 108: stack.append(len(stack))
       elif code == 114: stack.reverse()
-      elif code == 123: stack = stack[1:] + stack[:1]
-      elif code == 125: stack = stack[-1:] + stack[:-1]
-      elif code == 126: stack = stack[:-1]
+      elif code == 123: stack.rotate(-1)
+      elif code == 125: stack.rotate(1)
+      elif code == 126: stack.pop()
 
-    elif code in MIRRORS:
+    elif type == T_MIRROR:
       if   code ==  35: dx, dy = (-dx, -dy)
       elif code ==  47: dx, dy = (-dy, -dx)
       elif code ==  60: dx, dy = ( -1,   0)
@@ -87,7 +100,7 @@ def mainloop(program, col_max, row_max):
       elif code == 120: dx, dy = random.choice([(0, 1), (1, 0), (0, -1), (-1, 0)])
       elif code == 124: dx, dy = (-dx,  dy)
 
-    elif code in CONTROL:
+    elif type == T_CONTROL:
       if   code ==  33:
         skip = True
       elif code ==  38:
@@ -123,12 +136,11 @@ def mainloop(program, col_max, row_max):
         print(chr(int(n)), end = '')
       elif code == 112:
         y, x, v = stack.pop(), stack.pop(), stack.pop()
-        program[(x, y)] = v
+        program[(x, y)] = (v, TYPES.get(v, T_OTHER))
         col_max[x] = max(col_max.get(x, 0), y)
         row_max[y] = max(row_max.get(y, 0), x)
 
-    elif code in QUOTES:
-      slurp = True
+    elif type == T_QUOTE:
       slurp_char = code
 
     else:
@@ -150,32 +162,34 @@ def mainloop(program, col_max, row_max):
     pc = (x, y)
 
 
-def run(source):
+def parse(source):
   lines = source.splitlines()
   program = {}
   col_max = {}
   row_max = {}
   for y, line in enumerate(lines):
     for x, c in enumerate(line):
-      program[(x, y)] = ord(c)
+      program[(x, y)] = (ord(c), TYPES.get(ord(c), T_OTHER))
       col_max[x] = max(col_max.get(x, 0), y)
       row_max[y] = max(row_max.get(y, 0), x)
-  mainloop(program, col_max, row_max)
+  return program, col_max, row_max
 
 
 def main(argv):
   filename = ''
   try:
     filename = argv[1]
-    with open(filename) as file:
+    with open(filename, encoding='utf-8') as file:
       source = file.read()
   except IndexError:
     sys.exit('Usage: %s program.fsh'%argv[0])
   except OSError:
     sys.exit('File not found: %s'%filename)
 
+  program, col_max, row_max = parse(source)
+
   try:
-    run(source)
+    run(program, col_max, row_max)
   except:
     sys.exit('something smells fishy...')
 
