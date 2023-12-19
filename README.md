@@ -1,6 +1,6 @@
 # fish-i
 
-An Python 3 interpreter for the [><>](https://esolangs.org/wiki/Fish) programming language.
+A Python 3 interpreter for the [><>](https://esolangs.org/wiki/Fish) programming language.
 
 The interpreter differs from the reference implementation on the following points:
 
